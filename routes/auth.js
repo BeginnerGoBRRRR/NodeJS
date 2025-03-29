@@ -8,6 +8,8 @@ let { check_authentication } = require('../utils/check_auth')
 let crypto = require('crypto')
 let mailer = require('../utils/mailer')
 let { SignUpValidator, LoginValidator, validate } = require('../utils/validator')
+let multer = require('multer')
+let path = require('path')
 
 
 
@@ -38,7 +40,7 @@ router.post('/login', LoginValidator, validate, async function (req, res, next) 
     }
 });
 router.get('/logout', function (req, res, next) {
-    res.cookie("token", "")
+    CreateCookieResponse(res, 'token', "", Date.now());
 })
 router.get('/me', check_authentication, function (req, res, next) {
     CreateSuccessResponse(res, 200, req.user)
@@ -82,6 +84,39 @@ router.post('/resetpassword/:token', async function (req, res, next) {
     } catch (error) {
         next(error)
     }
+})
+//storage
+let avatarDir = path.join(__dirname, "../avatars")
+let authURL = "http://localhost:3000/auth/avatars/"
+let storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, avatarDir),
+    filename: (req, file, cb) => cb(null,
+        (new Date(Date.now())).getTime() + "-" + file.originalname
+    )
+})
+let upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match('image')) {
+            cb(new Error("tao nhan anh? thoi"));
+        } else {
+            cb(null, true);
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    }
+})
+//upload
+router.post("/change_avatar",check_authentication,upload.single('avatar'),async function (req, res, next) {
+    let avatarURL = authURL+req.file.filename;
+    req.user.avatarUrl = avatarURL;
+    await req.user.save()
+    CreateSuccessResponse(res,200,req.user) 
+})
+router.get("/avatars/:filename",function (req, res, next) {
+    let pathAvatar = path.join(avatarDir,req.params.filename)
+    res.sendFile(pathAvatar)
 })
 
 module.exports = router;
