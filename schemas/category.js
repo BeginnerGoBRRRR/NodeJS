@@ -8,7 +8,8 @@ let categorySchema = mongoose.Schema({
     },description:{
         type:String,
         default:""
-    }
+    },
+    slug:String
 },{
     timestamps:true
 })

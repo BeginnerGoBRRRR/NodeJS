@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 let categorySchema = require('../schemas/category')
+let slugify  = require('slugify')
 
 /* GET users listing. */
 router.get('/', async function(req, res, next) {
@@ -26,7 +27,10 @@ router.post('/', async function(req, res, next) {
     try {
         let body = req.body;
         let newCategory = categorySchema({
-            name:body.name
+            name:body.name,
+            slug: slugify(body.name, {
+                lower: true
+            })
         });
         await newCategory.save()
         res.status(200).send({

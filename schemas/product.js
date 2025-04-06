@@ -27,7 +27,8 @@ let productSchema = mongoose.Schema({
     ,isDeleted:{
         type:Boolean,
         default:false
-    }
+    },
+    slug:String
 },{
     timestamps:true
 })

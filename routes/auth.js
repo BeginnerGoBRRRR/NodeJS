@@ -10,6 +10,9 @@ let mailer = require('../utils/mailer')
 let { SignUpValidator, LoginValidator, validate } = require('../utils/validator')
 let multer = require('multer')
 let path = require('path')
+let FormData = require('form-data')
+let axios = require('axios')
+let fs = require('fs')
 
 
 
@@ -86,12 +89,13 @@ router.post('/resetpassword/:token', async function (req, res, next) {
     }
 })
 //storage
-let avatarDir = path.join(__dirname, "../avatars")
-let authURL = "http://localhost:3000/auth/avatars/"
+let avatarDir = path.join(__dirname, "../avatars");
+let authURL = "http://localhost:3000/auth/avatars/";
+let serverCDN = 'http://localhost:4000/upload';
 let storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, avatarDir),
     filename: (req, file, cb) => cb(null,
-        (new Date(Date.now())).getTime() + "-" + file.originalname
+        file.originalname
     )
 })
 let upload = multer({
@@ -107,15 +111,26 @@ let upload = multer({
         fileSize: 5 * 1024 * 1024
     }
 })
+
 //upload
-router.post("/change_avatar",check_authentication,upload.single('avatar'),async function (req, res, next) {
-    let avatarURL = authURL+req.file.filename;
-    req.user.avatarUrl = avatarURL;
+router.post("/change_avatar", check_authentication, upload.single('avatar'), async function (req, res, next) {
+    let imgPath = path.join(avatarDir, req.file.filename);
+    let newform = new FormData();
+    newform.append('avatar', fs.createReadStream(imgPath))
+    let result = await axios.post(serverCDN, newform, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+    fs.unlinkSync(imgPath)
+    // let avatarURL = authURL + req.file.filename;
+    req.user.avatarUrl = result.data.data;
     await req.user.save()
-    CreateSuccessResponse(res,200,req.user) 
+    CreateSuccessResponse(res, 200,req.user )
 })
-router.get("/avatars/:filename",function (req, res, next) {
-    let pathAvatar = path.join(avatarDir,req.params.filename)
+
+router.get("/avatars/:filename", function (req, res, next) {
+    let pathAvatar = path.join(avatarDir, req.params.filename)
     res.sendFile(pathAvatar)
 })
 
