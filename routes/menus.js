@@ -10,7 +10,7 @@ router.get('/', async function (req, res, next) {
   let result = []
   for (const parent of parents) {
     let QueryChildren = await menuSchema.find({
-      parent: parent._id
+      parent: parent._id  
     })
     let children = [];
     for (const child of QueryChildren) {

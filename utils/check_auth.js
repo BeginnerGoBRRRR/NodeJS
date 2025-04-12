@@ -8,9 +8,11 @@ module.exports = {
             token = req.signedCookies.token;
         } else {
             let authorizedtoken = req.headers.authorization;
-            if (!authorizedtoken.startsWith("Bearer")) {
+            if (authorizedtoken.startsWith("Bearer")) {
                 token = authorizedtoken.split(" ")[1];
-            } 
+            } else {
+                token = authorizedtoken;
+            }
         }
         if (!token) {
             next(new Error("ban chua dang nhap"));
