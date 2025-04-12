@@ -42,7 +42,10 @@ app.use('/products', require('./routes/products'));
 app.use('/categories', require('./routes/categories'));
 app.use('/categories', require('./routes/categories'));
 
-
+const orderRoutes = require('./routes/order');
+const notificationRoutes = require('./routes/notification');
+app.use('/api/orders', orderRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 
