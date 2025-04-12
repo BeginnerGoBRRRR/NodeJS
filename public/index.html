@@ -127,9 +127,11 @@
     <nav class="navbar">
         <div class="logo">E-Commerce</div>
         <div class="nav-links">
-            <a href="#" id="profile">Profile</a>
-            <a href="cart.html">Cart</a>
-            <button class="logout-btn" id="logout">Logout</button>
+            <a href="index.html" title="Home">🏠</a>
+            <a href="cart.html" title="Cart">🛒</a>
+            <a href="profile.html" title="Profile">👤</a>
+            <a href="admin-dashboard.html" id="adminDashboard" style="display: none;" title="Admin Dashboard">⚙️</a>
+            <button onclick="logout()" title="Logout">🚪</button>
         </div>
     </nav>
 
@@ -150,10 +152,10 @@
         }
 
         // Logout functionality
-        document.getElementById('logout').addEventListener('click', () => {
+        function logout() {
             localStorage.removeItem('token');
             window.location.href = 'login.html';
-        });
+        }
 
         // Fetch and display categories
         async function loadCategories() {
@@ -206,9 +208,42 @@
             loadProducts(categorySlug);
         }
 
-        // Initial load
-        loadCategories();
-        loadProducts();
+        // Add this function to check user role
+        function checkAdmin() {
+            const token = localStorage.getItem('token');
+            console.log('Token exists:', !!token);
+            
+            if (token) {
+                // Get user data
+                fetch('http://localhost:3000/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(userData => {
+                    console.log('User data:', userData);
+                    // Check if the user's role name is 'admin'
+                    if (userData.success && userData.data.role && userData.data.role.name === 'admin') {
+                        console.log('User is admin, showing dashboard link');
+                        document.getElementById('adminDashboard').style.display = 'block';
+                    } else {
+                        console.log('User is not admin. Role:', userData.data?.role?.name || 'No role');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking admin status:', error);
+                });
+            }
+        }
+
+        // Call checkAdmin when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, checking admin status...'); // Debug log
+            checkAdmin();
+            loadCategories();
+            loadProducts();
+        });
     </script>
 </body>
 </html> 
