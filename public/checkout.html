@@ -222,7 +222,19 @@
         }
 
         async function placeOrder() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Please log in to place an order');
+                window.location.href = 'login.html';
+                return;
+            }
+
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+
             const form = document.getElementById('checkoutForm');
             
             if (!form.checkValidity()) {
@@ -231,8 +243,13 @@
             }
 
             const orderData = {
-                items: cart,
-                shippingInfo: {
+                items: cart.map(item => ({
+                    product: item.id,
+                    quantity: item.quantity,
+                    price: item.price
+                })),
+                totalAmount: parseFloat(document.getElementById('orderTotal').textContent.replace('$', '')),
+                shippingAddress: {
                     fullName: document.getElementById('fullName').value,
                     email: document.getElementById('email').value,
                     address: document.getElementById('address').value,
@@ -240,7 +257,9 @@
                     zipCode: document.getElementById('zipCode').value,
                     country: document.getElementById('country').value
                 },
-                total: parseFloat(document.getElementById('orderTotal').textContent.replace('$', ''))
+                paymentMethod: "Credit Card",
+                paymentStatus: "Pending",
+                orderStatus: "Pending"
             };
 
             try {
@@ -248,26 +267,36 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': token
                     },
                     body: JSON.stringify(orderData)
                 });
 
+                const data = await response.json();
+                
                 if (response.ok) {
+                    // Clear the cart
                     localStorage.removeItem('cart');
                     alert('Order placed successfully!');
-                    window.location.href = 'profile.html';
+                    window.location.href = 'index.html';
                 } else {
-                    alert('Failed to place order. Please try again.');
+                    throw new Error(data.message || 'Failed to place order');
                 }
             } catch (error) {
-                console.error('Error placing order:', error);
-                alert('An error occurred. Please try again.');
+                alert(error.message);
             }
         }
 
-        // Initial load
-        loadOrderSummary();
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Please log in to checkout');
+                window.location.href = 'login.html';
+                return;
+            }
+            loadOrderSummary();
+        });
     </script>
 </body>
 </html> 

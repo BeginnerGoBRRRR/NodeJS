@@ -1,22 +1,62 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../schemas/order');
+const User = require('../schemas/user');
 const { check_authentication } = require('../utils/check_auth');
 
 // Get all orders (admin only)
 router.get('/', check_authentication, async (req, res) => {
     try {
+        // Check if user is admin
         if (req.user.role.name !== 'admin') {
-            return res.status(403).json({ success: false, message: 'Access denied' });
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin privileges required.'
+            });
         }
 
         const orders = await Order.find()
-            .populate('user', 'username')
-            .populate('items.product', 'name');
-        
-        res.json({ success: true, data: orders });
+            .populate({
+                path: 'user',
+                select: 'username email'
+            })
+            .populate({
+                path: 'items.product',
+                select: 'name price'
+            })
+            .sort({ createdAt: -1 });
+
+        // Transform the orders data to ensure consistent structure
+        const transformedOrders = orders.map(order => ({
+            _id: order._id,
+            user: order.user ? {
+                username: order.user.username,
+                email: order.user.email
+            } : null,
+            items: order.items.map(item => ({
+                product: item.product ? {
+                    name: item.product.name,
+                    price: item.product.price
+                } : null,
+                quantity: item.quantity,
+                price: item.price
+            })),
+            totalAmount: order.totalAmount,
+            orderStatus: order.orderStatus,
+            createdAt: order.createdAt
+        }));
+
+        res.json({
+            success: true,
+            data: transformedOrders
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Error fetching orders:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching orders',
+            error: error.message
+        });
     }
 });
 
@@ -84,9 +124,15 @@ router.get('/statistics', check_authentication, async (req, res) => {
         }
 
         const totalOrders = await Order.countDocuments();
+        
+        // Calculate total revenue from all orders
         const totalRevenue = await Order.aggregate([
-            { $match: { paymentStatus: 'Completed' } },
-            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$totalAmount' }
+                }
+            }
         ]);
 
         const ordersByStatus = await Order.aggregate([
@@ -102,7 +148,12 @@ router.get('/statistics', check_authentication, async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Error fetching statistics:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching statistics',
+            error: error.message 
+        });
     }
 });
 

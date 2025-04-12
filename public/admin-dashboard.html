@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -45,45 +46,28 @@
             margin: 2rem auto;
             padding: 0 1rem;
         }
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+        .dashboard-container {
+            padding: 20px;
         }
         .stat-card {
-            background-color: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .stat-card h3 {
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-        .stat-card p {
-            font-size: 2rem;
+        .stat-value {
+            font-size: 24px;
             font-weight: bold;
-            color: #4a90e2;
+            color: #0d6efd;
         }
         .orders-table {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
+        .table th {
+            background: #f8f9fa;
         }
         .status-badge {
             padding: 0.25rem 0.5rem;
@@ -122,23 +106,37 @@
         </div>
     </nav>
 
-    <div class="container">
-        <div class="stats-container" id="stats-container">
-            <!-- Stats will be loaded here -->
+    <div class="container dashboard-container">
+        <h2 class="mb-4">Admin Dashboard</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <h5>Total Orders</h5>
+                    <div class="stat-value" id="totalOrders">0</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <h5>Total Revenue</h5>
+                    <div class="stat-value" id="totalRevenue">$0</div>
+                </div>
+            </div>
         </div>
+
         <div class="orders-table">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Order ID</th>
                         <th>Customer</th>
-                        <th>Date</th>
+                        <th>Items</th>
                         <th>Total</th>
+                        <th>Date</th>
                         <th>Status</th>
-                        <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="orders-table-body">
+                <tbody id="ordersTableBody">
                     <!-- Orders will be loaded here -->
                 </tbody>
             </table>
@@ -155,7 +153,7 @@
         // Check admin status
         fetch('http://localhost:3000/auth/me', {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': token
             }
         })
         .then(response => response.json())
@@ -176,74 +174,65 @@
 
         // Load admin dashboard data
         function loadDashboard() {
-            document.getElementById('stats-container').innerHTML = '<div class="loading">Loading statistics...</div>';
-            document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="6" class="loading">Loading orders...</td></tr>';
+            document.getElementById('totalOrders').textContent = 'Loading...';
+            document.getElementById('totalRevenue').textContent = 'Loading...';
+            document.getElementById('ordersTableBody').innerHTML = '<tr><td colspan="6" class="loading">Loading orders...</td></tr>';
 
             // Load statistics
             fetch('http://localhost:3000/orders/statistics', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': token
                 }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const stats = data.data;
-                    document.getElementById('stats-container').innerHTML = `
-                        <div class="stat-card">
-                            <h3>Total Orders</h3>
-                            <p>${stats.totalOrders}</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Total Revenue</h3>
-                            <p>$${stats.totalRevenue.toFixed(2)}</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Completed Orders</h3>
-                            <p>${stats.ordersByStatus.find(s => s._id === 'Completed')?.count || 0}</p>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Pending Orders</h3>
-                            <p>${stats.ordersByStatus.find(s => s._id === 'Pending')?.count || 0}</p>
-                        </div>
-                    `;
+                    document.getElementById('totalOrders').textContent = data.data.totalOrders;
+                    document.getElementById('totalRevenue').textContent = `$${data.data.totalRevenue.toFixed(2)}`;
+                } else {
+                    console.error('Error loading statistics:', data.message);
+                    document.getElementById('totalOrders').textContent = 'Error';
+                    document.getElementById('totalRevenue').textContent = 'Error';
                 }
             })
             .catch(error => {
-                document.getElementById('stats-container').innerHTML = '<div class="error">Error loading statistics</div>';
                 console.error('Error loading statistics:', error);
+                document.getElementById('totalOrders').textContent = 'Error';
+                document.getElementById('totalRevenue').textContent = 'Error';
             });
 
             // Load orders
             fetch('http://localhost:3000/orders', {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': token
                 }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const orders = data.data;
-                    document.getElementById('orders-table-body').innerHTML = orders.map(order => `
-                        <tr>
+                    const ordersTableBody = document.getElementById('ordersTableBody');
+                    ordersTableBody.innerHTML = '';
+
+                    data.data.forEach(order => {
+                        const row = document.createElement('tr');
+                        const itemsList = order.items.map(item => 
+                            `${item.product?.name || 'N/A'} (${item.quantity} x $${item.price})`
+                        ).join(', ');
+
+                        row.innerHTML = `
                             <td>${order._id}</td>
-                            <td>${order.user.username}</td>
-                            <td>${new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td>${order.user?.username || 'N/A'}</td>
+                            <td>${itemsList}</td>
                             <td>$${order.totalAmount.toFixed(2)}</td>
-                            <td>
-                                <span class="status-badge status-${order.orderStatus.toLowerCase()}">
-                                    ${order.orderStatus}
-                                </span>
-                            </td>
-                            <td>
-                                <button onclick="viewOrderDetails('${order._id}')">View Details</button>
-                            </td>
-                        </tr>
-                    `).join('');
+                            <td>${new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td>${order.orderStatus}</td>
+                        `;
+                        ordersTableBody.appendChild(row);
+                    });
                 }
             })
             .catch(error => {
-                document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="6" class="error">Error loading orders</td></tr>';
+                document.getElementById('ordersTableBody').innerHTML = '<tr><td colspan="6" class="error">Error loading orders</td></tr>';
                 console.error('Error loading orders:', error);
             });
         }
@@ -251,7 +240,7 @@
         function viewOrderDetails(orderId) {
             fetch(`http://localhost:3000/orders/${orderId}`, {
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': token
                 }
             })
             .then(response => response.json())
@@ -262,7 +251,7 @@
                         <div style="padding: 20px;">
                             <h2>Order Details</h2>
                             <p><strong>Order ID:</strong> ${order._id}</p>
-                            <p><strong>Customer:</strong> ${order.user.username}</p>
+                            <p><strong>Customer:</strong> ${order.user?.username || 'N/A'}</p>
                             <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
                             <p><strong>Status:</strong> ${order.orderStatus}</p>
                             <p><strong>Total Amount:</strong> $${order.totalAmount.toFixed(2)}</p>

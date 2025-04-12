@@ -14,6 +14,14 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const orderRoutes = require('./routes/orders');
+const cartRoutes = require('./routes/cart');
+const roleRoutes = require('./routes/roles');
+
+// Import all models to ensure they are registered
+require('./schemas/user');
+require('./schemas/product');
+require('./schemas/order');
+require('./schemas/role');
 
 var app = express();
 
@@ -43,6 +51,8 @@ app.use('/auth', authRoutes);
 app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/orders', orderRoutes);
+app.use('/cart', cartRoutes);
+app.use('/roles', roleRoutes);
 
 
 
