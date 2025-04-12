@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .product-details {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+        }
+        .product-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .product-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .product-price {
+            font-size: 1.5rem;
+            color: #4a90e2;
+            font-weight: bold;
+        }
+        .product-quantity {
+            font-size: 1.1rem;
+            color: #666;
+        }
+        .product-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #444;
+        }
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .quantity-btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .add-to-cart-btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        .add-to-cart-btn:hover {
+            background-color: #357abd;
+        }
+        .back-btn {
+            display: inline-block;
+            background-color: #4a90e2;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-top: 1rem;
+            align-self: flex-start;
+        }
+        .back-btn:hover {
+            background-color: #357abd;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">E-Commerce</div>
+        <div class="nav-links">
+            <a href="index.html">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="product-details">
+            <div class="loading">Loading product details...</div>
+        </div>
+    </div>
+
+    <script>
+        let product = null;
+        let maxQuantity = 0;
+
+        // Get product ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+
+        function decreaseQuantity() {
+            const input = document.getElementById('quantity');
+            if (parseInt(input.value) > 1) {
+                input.value = parseInt(input.value) - 1;
+            }
+        }
+
+        function increaseQuantity() {
+            const input = document.getElementById('quantity');
+            if (parseInt(input.value) < maxQuantity) {
+                input.value = parseInt(input.value) + 1;
+            }
+        }
+
+        function addToCart() {
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            
+            // Check if product already in cart
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += quantity;
+            } else {
+                cart.push({
+                    id: productId,
+                    name: product.name,
+                    price: product.price,
+                    quantity: quantity,
+                    imgURL: product.imgURL
+                });
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert('Product added to cart!');
+        }
+
+        // Fetch and display product details
+        async function loadProductDetails() {
+            const productContainer = document.getElementById('product-details');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/products/${productId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    product = data.data;
+                    maxQuantity = product.quantity;
+                    productContainer.innerHTML = `
+                        <div class="product-details">
+                            <img src="${product.imgURL || 'https://via.placeholder.com/600'}" 
+                                 alt="${product.name}" 
+                                 class="product-image">
+                            <div class="product-info">
+                                <h1 class="product-name">${product.name}</h1>
+                                <div class="product-price">$${product.price}</div>
+                                <div class="product-quantity">Quantity: ${product.quantity}</div>
+                                <p class="product-description">${product.description || 'No description available'}</p>
+                                <div class="quantity-selector">
+                                    <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                                    <input type="number" class="quantity-input" id="quantity" value="1" min="1" max="${product.quantity}">
+                                    <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+                                </div>
+                                <button class="add-to-cart-btn" onclick="addToCart()">Add to Cart</button>
+                                <a href="index.html" class="back-btn">Back to Products</a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    productContainer.innerHTML = '<div class="error">Product not found</div>';
+                }
+            } catch (error) {
+                productContainer.innerHTML = '<div class="error">Error loading product details</div>';
+                console.error('Error loading product details:', error);
+            }
+        }
+
+        // Initial load
+        if (productId) {
+            loadProductDetails();
+        } else {
+            document.getElementById('product-details').innerHTML = '<div class="error">No product ID provided</div>';
+        }
+    </script>
+</body>
+</html> 

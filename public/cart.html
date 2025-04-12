@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .cart-items {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .cart-item {
+            display: grid;
+            grid-template-columns: 100px 1fr auto auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .item-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .item-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .item-price {
+            color: #4a90e2;
+            font-weight: bold;
+        }
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .quantity-btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quantity-input {
+            width: 40px;
+            text-align: center;
+            padding: 0.25rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .remove-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background-color: #c0392b;
+        }
+        .cart-summary {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .checkout-btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        .checkout-btn:hover {
+            background-color: #357abd;
+        }
+        .empty-cart {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">E-Commerce</div>
+        <div class="nav-links">
+            <a href="index.html">Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="cart-items" id="cart-items">
+            <!-- Cart items will be loaded here -->
+        </div>
+        <div class="cart-summary" id="cart-summary">
+            <!-- Cart summary will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        function updateCart() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const cartItemsContainer = document.getElementById('cart-items');
+            const cartSummaryContainer = document.getElementById('cart-summary');
+
+            if (cart.length === 0) {
+                cartItemsContainer.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
+                cartSummaryContainer.innerHTML = '';
+                return;
+            }
+
+            let total = 0;
+            cartItemsContainer.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                return `
+                    <div class="cart-item">
+                        <img src="${item.imgURL || 'https://via.placeholder.com/100'}" alt="${item.name}" class="item-image">
+                        <div class="item-details">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-price">$${item.price}</div>
+                        </div>
+                        <div class="quantity-selector">
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
+                            <input type="number" class="quantity-input" value="${item.quantity}" min="1" 
+                                   onchange="updateQuantity('${item.id}', this.value)">
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                        </div>
+                        <button class="remove-btn" onclick="removeItem('${item.id}')">Remove</button>
+                    </div>
+                `;
+            }).join('');
+
+            cartSummaryContainer.innerHTML = `
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>$${total.toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (10%)</span>
+                    <span>$${(total * 0.1).toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span>$${(total * 1.1).toFixed(2)}</span>
+                </div>
+                <button class="checkout-btn" onclick="checkout()">Proceed to Checkout</button>
+            `;
+        }
+
+        function updateQuantity(productId, newQuantity) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const item = cart.find(item => item.id === productId);
+            
+            if (item) {
+                if (newQuantity < 1) {
+                    removeItem(productId);
+                } else {
+                    item.quantity = parseInt(newQuantity);
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                    updateCart();
+                }
+            }
+        }
+
+        function removeItem(productId) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const newCart = cart.filter(item => item.id !== productId);
+            localStorage.setItem('cart', JSON.stringify(newCart));
+            updateCart();
+        }
+
+        function checkout() {
+            alert('Checkout functionality coming soon!');
+        }
+
+        // Initial load
+        updateCart();
+    </script>
+</body>
+</html> 
