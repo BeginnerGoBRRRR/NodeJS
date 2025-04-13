@@ -175,28 +175,35 @@ router.get('/statistics', check_authentication, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Access denied' });
         }
 
-        const totalOrders = await Order.countDocuments();
-        
-        // Calculate total revenue from all orders
-        const totalRevenue = await Order.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: '$totalAmount' }
-                }
-            }
-        ]);
+        // Get all orders
+        const orders = await Order.find()
+            .select('totalAmount orderStatus')
+            .lean();
 
-        const ordersByStatus = await Order.aggregate([
-            { $group: { _id: '$orderStatus', count: { $sum: 1 } } }
-        ]);
+        // Calculate totals
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+        // Count orders by status
+        const statusCounts = {
+            'Pending': 0,
+            'Processing': 0,
+            'Completed': 0,
+            'Cancelled': 0
+        };
+
+        orders.forEach(order => {
+            if (order.orderStatus && statusCounts[order.orderStatus] !== undefined) {
+                statusCounts[order.orderStatus]++;
+            }
+        });
 
         res.json({
             success: true,
             data: {
                 totalOrders,
-                totalRevenue: totalRevenue[0]?.total || 0,
-                ordersByStatus
+                totalRevenue,
+                ordersByStatus: statusCounts
             }
         });
     } catch (error) {

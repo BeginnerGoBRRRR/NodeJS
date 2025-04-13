@@ -8,6 +8,7 @@ let path = require('path')
 let FormData = require('form-data')
 let axios = require('axios')
 let fs = require('fs')
+let mongoose = require('mongoose')
 
 // Configure multer for local image storage
 const storage = multer.diskStorage({
@@ -177,7 +178,7 @@ router.post('/', upload.single('image'), async function (req, res, next) {
 router.put('/:id', upload.single('image'), async function (req, res, next) {
     try {
         let body = req.body;
-        
+
         // Get the existing product
         const existingProduct = await productSchema.findById(req.params.id);
         if (!existingProduct) {
@@ -192,13 +193,28 @@ router.put('/:id', upload.single('image'), async function (req, res, next) {
 
         let updatedObj = {};
 
-        if (body.name) updatedObj.name = body.name;
-        if (body.quantity) updatedObj.quantity = body.quantity;
-        if (body.price) updatedObj.price = body.price;
-        if (body.category) updatedObj.category = body.category;
-        if (body.description) updatedObj.description = body.description;
+        // Only update fields that are provided
+        if (body.name) {
+            updatedObj.name = body.name;
+            updatedObj.slug = slugify(body.name, { lower: true });
+        }
+        if (body.quantity !== undefined) updatedObj.quantity = body.quantity;
+        if (body.price !== undefined) updatedObj.price = body.price;
+        if (body.description !== undefined) updatedObj.description = body.description;
 
-        // Handle image upload if provided
+        // Handle category update if provided
+        if (body.category) {
+            const category = await categorySchema.findOne({ name: body.category });
+            if (!category) {
+                return res.status(404).send({
+                    success: false,
+                    message: "Category not found"
+                });
+            }
+            updatedObj.category = category._id;
+        }
+
+        // Handle image update if provided
         if (req.file) {
             // Delete old image first
             await deleteOldImage(existingProduct.imageUrl);

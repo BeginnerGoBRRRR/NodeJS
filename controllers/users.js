@@ -39,20 +39,31 @@ module.exports = {
     }
   },
   UpdateAnUser: async function (id, body) {
-    let allowField = ["password", "email", "imgURL"];
     let getUser = await userSchema.findById(id);
+    if (!getUser) {
+      throw new Error('User not found');
+    }
+
+    // Update all fields that are provided
     for (const key of Object.keys(body)) {
-      if (allowField.includes(key)) {
-        getUser[key] = body[key]
+      if (key === 'role') {
+        // Handle role update
+        let roleObj = await roleSchema.findOne({ name: body[key] });
+        if (!roleObj) {
+          throw new Error('Role does not exist');
+        }
+        getUser.role = roleObj._id;
+      } else if (key === 'password' && body[key]) {
+        // Handle password update
+        getUser.password = body[key];
+      } else {
+        getUser[key] = body[key];
       }
     }
     return await getUser.save();
   },
   DeleteAnUser: async function (id) {
-    return await userSchema.findByIdAndUpdate(id, { status: false }
-      , {
-        new: true
-      });
+    return await userSchema.findByIdAndDelete(id);
   },
   CheckLogin: async function (username, password) {
     let user = await userSchema.findOne({

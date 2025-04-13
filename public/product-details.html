@@ -147,6 +147,91 @@
             text-align: center;
             padding: 2rem;
         }
+        /* Comment Section Styles */
+        .comments-section {
+            margin-top: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .comments-section h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        .comment-form {
+            margin-bottom: 2rem;
+        }
+        .comment-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            resize: vertical;
+            min-height: 100px;
+        }
+        .rating-selector {
+            margin-bottom: 1rem;
+        }
+        .rating-selector select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .submit-comment-btn {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .submit-comment-btn:hover {
+            background-color: #357abd;
+        }
+        .comments-list {
+            margin-top: 2rem;
+        }
+        .comment {
+            border-bottom: 1px solid #eee;
+            padding: 1rem 0;
+        }
+        .comment:last-child {
+            border-bottom: none;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .comment-user {
+            font-weight: bold;
+            color: #333;
+        }
+        .comment-rating {
+            color: #f39c12;
+        }
+        .comment-content {
+            color: #444;
+            line-height: 1.6;
+        }
+        .comment-date {
+            color: #999;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .admin-reply {
+            background-color: #f9f9f9;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+        }
+        .admin-reply-header {
+            font-weight: bold;
+            color: #4a90e2;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +259,31 @@
                     <button id="addToCart" class="add-to-cart-btn">Add to Cart</button>
                     <a href="index.html" class="back-btn">Back to Products</a>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="comments-section">
+            <h2>Comments</h2>
+            
+            <!-- Comment Form -->
+            <div class="comment-form">
+                <textarea id="commentText" placeholder="Write your comment here..."></textarea>
+                <div class="rating-selector">
+                    <select id="commentRating">
+                        <option value="1">1 Star</option>
+                        <option value="2">2 Stars</option>
+                        <option value="3">3 Stars</option>
+                        <option value="4">4 Stars</option>
+                        <option value="5" selected>5 Stars</option>
+                    </select>
+                </div>
+                <button id="submitComment" class="submit-comment-btn">Submit Comment</button>
+            </div>
+
+            <!-- Comments List -->
+            <div id="commentsList" class="comments-list">
+                <!-- Comments will be loaded here -->
             </div>
         </div>
     </div>
@@ -280,12 +390,95 @@
             }
         }
 
-        // Initial load
-        if (productId) {
-            loadProductDetails();
-        } else {
-            document.getElementById('product-details').innerHTML = '<div class="error">No product ID provided</div>';
+        // Load comments
+        async function loadComments() {
+            try {
+                const response = await fetch(`http://localhost:3000/comments/product/${productId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load comments');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load comments');
+                }
+
+                const commentsList = document.getElementById('commentsList');
+                commentsList.innerHTML = '';
+
+                result.data.forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'comment';
+                    commentElement.innerHTML = `
+                        <div class="comment-header">
+                            <span class="comment-user">${comment.user.username}</span>
+                            <span class="comment-rating">${'★'.repeat(comment.rating)}${'☆'.repeat(5-comment.rating)}</span>
+                        </div>
+                        <div class="comment-content">${comment.comment}</div>
+                        <div class="comment-date">${new Date(comment.createdAt).toLocaleDateString()}</div>
+                        ${comment.adminReply ? `
+                            <div class="admin-reply">
+                                <div class="admin-reply-header">Admin Reply</div>
+                                <div>${comment.adminReply}</div>
+                            </div>
+                        ` : ''}
+                    `;
+                    commentsList.appendChild(commentElement);
+                });
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                const commentsList = document.getElementById('commentsList');
+                commentsList.innerHTML = `<div class="error">Failed to load comments: ${error.message}</div>`;
+            }
         }
+
+        // Submit comment
+        document.getElementById('submitComment').addEventListener('click', async () => {
+            try {
+                const commentText = document.getElementById('commentText').value;
+                const rating = document.getElementById('commentRating').value;
+
+                if (!commentText) {
+                    alert('Please write a comment');
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3000/comments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        productId: productId,
+                        comment: commentText,
+                        rating: parseInt(rating)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit comment');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to submit comment');
+                }
+
+                // Clear form and reload comments
+                document.getElementById('commentText').value = '';
+                loadComments();
+            } catch (error) {
+                console.error('Error submitting comment:', error);
+                alert(`Failed to submit comment: ${error.message}`);
+            }
+        });
+
+        // Load product details and comments when page loads
+        window.addEventListener('load', async () => {
+            await loadProductDetails();
+            await loadComments();
+        });
     </script>
 </body>
 </html> 

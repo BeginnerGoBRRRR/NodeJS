@@ -39,7 +39,7 @@ let productSchema = mongoose.Schema({
     comments: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'user',
             required: true
         },
         text: {
