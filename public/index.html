@@ -185,18 +185,37 @@
                     : 'http://localhost:3000/products';
                 
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+
                 const products = await response.json();
                 
-                productsContainer.innerHTML = products.map(product => `
-                    <div class="product-card" onclick="window.location.href='product-details.html?id=${product._id}'">
-                        <img src="${product.imgURL || 'https://via.placeholder.com/300'}" alt="${product.name}" class="product-image">
-                        <div class="product-info">
-                            <div class="product-name">${product.name}</div>
-                            <div class="product-price">$${product.price}</div>
-                            <div class="product-quantity">Quantity: ${product.quantity}</div>
+                productsContainer.innerHTML = products.map(product => {
+                    // Handle image URL with proper fallback
+                    let imageUrl = 'images/default-product.png';
+                    if (product.imageUrl) {
+                        if (product.imageUrl.startsWith('/')) {
+                            imageUrl = `http://localhost:3000${product.imageUrl}`;
+                        } else {
+                            imageUrl = product.imageUrl;
+                        }
+                    }
+
+                    return `
+                        <div class="product-card" onclick="window.location.href='product-details.html?id=${product._id}'">
+                            <img src="${imageUrl}" 
+                                 alt="${product.name}" 
+                                 class="product-image"
+                                 onerror="this.onerror=null; this.src='images/default-product.png'">
+                            <div class="product-info">
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-price">$${product.price.toFixed(2)}</div>
+                                <div class="product-quantity">Quantity: ${product.quantity}</div>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } catch (error) {
                 productsContainer.innerHTML = '<div class="error">Error loading products</div>';
                 console.error('Error loading products:', error);

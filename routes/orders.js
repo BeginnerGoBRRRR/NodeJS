@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../schemas/order');
 const User = require('../schemas/user');
+const Product = require('../schemas/product');
 const { check_authentication } = require('../utils/check_auth');
 
 // Get all orders (admin only)
@@ -16,35 +17,47 @@ router.get('/', check_authentication, async (req, res) => {
         }
 
         const orders = await Order.find()
-            .populate({
-                path: 'user',
-                select: 'username email'
-            })
-            .populate({
-                path: 'items.product',
-                select: 'name price'
-            })
+            .populate('user', 'username email')
             .sort({ createdAt: -1 });
 
-        // Transform the orders data to ensure consistent structure
-        const transformedOrders = orders.map(order => ({
-            _id: order._id,
-            user: order.user ? {
-                username: order.user.username,
-                email: order.user.email
-            } : null,
-            items: order.items.map(item => ({
-                product: item.product ? {
-                    name: item.product.name,
-                    price: item.product.price
-                } : null,
-                quantity: item.quantity,
-                price: item.price
-            })),
-            totalAmount: order.totalAmount,
-            orderStatus: order.orderStatus,
-            createdAt: order.createdAt
-        }));
+        const transformedOrders = [];
+        
+        for (const order of orders) {
+            const items = [];
+            for (const item of order.items) {
+                const product = await Product.findById(item.product);
+                items.push({
+                    product: product ? {
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: product.imageUrl
+                    } : {
+                        name: 'Product Unavailable',
+                        price: item.price || 0,
+                        imageUrl: ''
+                    },
+                    quantity: item.quantity,
+                    price: item.price
+                });
+            }
+
+            transformedOrders.push({
+                _id: order._id,
+                user: order.user ? {
+                    username: order.user.username,
+                    email: order.user.email
+                } : {
+                    username: 'Unknown User',
+                    email: 'No Email'
+                },
+                items: items,
+                totalAmount: order.totalAmount,
+                orderStatus: order.orderStatus,
+                createdAt: order.createdAt,
+                shippingAddress: order.shippingAddress,
+                paymentStatus: order.paymentStatus
+            });
+        }
 
         res.json({
             success: true,
@@ -64,12 +77,51 @@ router.get('/', check_authentication, async (req, res) => {
 router.get('/my-orders', check_authentication, async (req, res) => {
     try {
         const orders = await Order.find({ user: req.user._id })
-            .populate('items.product', 'name')
             .sort({ createdAt: -1 });
+
+        const transformedOrders = [];
         
-        res.json({ success: true, data: orders });
+        for (const order of orders) {
+            const items = [];
+            for (const item of order.items) {
+                const product = await Product.findById(item.product);
+                items.push({
+                    product: product ? {
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: product.imageUrl
+                    } : {
+                        name: 'Product Unavailable',
+                        price: item.price || 0,
+                        imageUrl: ''
+                    },
+                    quantity: item.quantity,
+                    price: item.price
+                });
+            }
+
+            transformedOrders.push({
+                _id: order._id,
+                items: items,
+                totalAmount: order.totalAmount,
+                orderStatus: order.orderStatus || 'Pending',
+                createdAt: order.createdAt,
+                shippingAddress: order.shippingAddress,
+                paymentStatus: order.paymentStatus || 'Pending'
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            data: transformedOrders 
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        console.error('Error fetching user orders:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching orders',
+            error: error.message 
+        });
     }
 });
 
@@ -152,6 +204,104 @@ router.get('/statistics', check_authentication, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error fetching statistics',
+            error: error.message 
+        });
+    }
+});
+
+// Delete order (admin only)
+router.delete('/:id', check_authentication, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (req.user.role.name !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Access denied. Admin privileges required.' 
+            });
+        }
+
+        // Find the order first to check if it exists
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        // Delete the order
+        await Order.findByIdAndDelete(req.params.id);
+
+        res.json({ 
+            success: true, 
+            message: 'Order deleted successfully' 
+        });
+    } catch (error) {
+        console.error('Error deleting order:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error deleting order',
+            error: error.message 
+        });
+    }
+});
+
+// Delete item from order (admin only)
+router.delete('/:id/items/:itemIndex', check_authentication, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (req.user.role.name !== 'admin') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Access denied. Admin privileges required.' 
+            });
+        }
+
+        // Find the order
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        const itemIndex = parseInt(req.params.itemIndex);
+        if (itemIndex < 0 || itemIndex >= order.items.length) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid item index' 
+            });
+        }
+
+        // Remove the item
+        order.items.splice(itemIndex, 1);
+
+        // Recalculate total amount
+        order.totalAmount = order.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+        // If no items left, delete the order
+        if (order.items.length === 0) {
+            await Order.findByIdAndDelete(req.params.id);
+            return res.json({ 
+                success: true, 
+                message: 'Order deleted as it has no items' 
+            });
+        }
+
+        // Save the updated order
+        await order.save();
+
+        res.json({ 
+            success: true, 
+            message: 'Item deleted successfully',
+            data: order 
+        });
+    } catch (error) {
+        console.error('Error deleting item from order:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error deleting item from order',
             error: error.message 
         });
     }

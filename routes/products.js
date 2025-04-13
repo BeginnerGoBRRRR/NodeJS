@@ -15,9 +15,9 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/')
     },
     filename: (req, file, cb) => {
-        // Generate unique filename with timestamp and original extension
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, uniqueSuffix + path.extname(file.originalname))
+        // Generate unique filename using timestamp and random string
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
     }
 })
 
@@ -57,6 +57,21 @@ async function uploadToCDN(filePath) {
     } finally {
         // Clean up the temporary file
         fs.unlinkSync(filePath);
+    }
+}
+
+// Helper function to delete old image
+async function deleteOldImage(imageUrl) {
+    if (!imageUrl || imageUrl.includes('placeholder.com')) return;
+    
+    try {
+        const imagePath = path.join(__dirname, '..', imageUrl.replace('/products/images/', 'uploads/'));
+        if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+            console.log('Old image deleted:', imagePath);
+        }
+    } catch (error) {
+        console.error('Error deleting old image:', error);
     }
 }
 
@@ -114,6 +129,10 @@ router.post('/', upload.single('image'), async function (req, res, next) {
         let category = await categorySchema.findOne({ name: body.category })
         
         if (!category) {
+            // Delete uploaded file if category not found
+            if (req.file) {
+                await deleteOldImage(`/products/images/${req.file.filename}`);
+            }
             return res.status(404).send({
                 success: false,
                 message: "Category not found"
@@ -123,7 +142,6 @@ router.post('/', upload.single('image'), async function (req, res, next) {
         // Get image URL
         let imageUrl = "https://via.placeholder.com/400"; // Default image
         if (req.file) {
-            // Construct the URL for the uploaded image
             imageUrl = `/products/images/${req.file.filename}`;
         }
 
@@ -145,6 +163,10 @@ router.post('/', upload.single('image'), async function (req, res, next) {
             data: newProduct
         });
     } catch (error) {
+        // Delete uploaded file if error occurs
+        if (req.file) {
+            await deleteOldImage(`/products/images/${req.file.filename}`);
+        }
         res.status(400).send({
             success: false,
             message: error.message
@@ -155,6 +177,19 @@ router.post('/', upload.single('image'), async function (req, res, next) {
 router.put('/:id', upload.single('image'), async function (req, res, next) {
     try {
         let body = req.body;
+        
+        // Get the existing product
+        const existingProduct = await productSchema.findById(req.params.id);
+        if (!existingProduct) {
+            if (req.file) {
+                await deleteOldImage(`/products/images/${req.file.filename}`);
+            }
+            return res.status(404).send({
+                success: false,
+                message: "Product not found"
+            });
+        }
+
         let updatedObj = {};
 
         if (body.name) updatedObj.name = body.name;
@@ -165,6 +200,10 @@ router.put('/:id', upload.single('image'), async function (req, res, next) {
 
         // Handle image upload if provided
         if (req.file) {
+            // Delete old image first
+            await deleteOldImage(existingProduct.imageUrl);
+            
+            // Set new image URL
             updatedObj.imageUrl = `/products/images/${req.file.filename}`;
         }
 
@@ -179,6 +218,10 @@ router.put('/:id', upload.single('image'), async function (req, res, next) {
             data: updatedProduct
         });
     } catch (error) {
+        // Delete uploaded file if error occurs
+        if (req.file) {
+            await deleteOldImage(`/products/images/${req.file.filename}`);
+        }
         res.status(400).send({
             success: false,
             message: error.message
@@ -188,6 +231,12 @@ router.put('/:id', upload.single('image'), async function (req, res, next) {
 
 router.delete('/:id', async function (req, res, next) {
     try {
+        const product = await productSchema.findById(req.params.id);
+        if (product) {
+            // Delete the product's image if it exists
+            await deleteOldImage(product.imageUrl);
+        }
+
         let updatedProduct = await productSchema.findByIdAndUpdate(
             req.params.id, 
             { isDeleted: true }, 

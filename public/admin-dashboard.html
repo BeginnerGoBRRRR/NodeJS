@@ -124,16 +124,28 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <h5>Manage Products</h5>
+                    <a href="manage-product.html" class="btn btn-primary">Manage Products</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <h5>Manage Categories</h5>
+                    <a href="manage-category.html" class="btn btn-primary">Manage Categories</a>
+                </div>
+            </div>
+        </div>
+
         <div class="orders-table">
             <table class="table">
                 <thead>
                     <tr>
                         <th>Order ID</th>
-                        <th>Customer</th>
                         <th>Items</th>
-                        <th>Total</th>
-                        <th>Date</th>
-                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
@@ -153,7 +165,7 @@
         // Check admin status
         fetch('http://localhost:3000/auth/me', {
             headers: {
-                'Authorization': token
+                'Authorization': `Bearer ${token}`
             }
         })
         .then(response => response.json())
@@ -181,7 +193,7 @@
             // Load statistics
             fetch('http://localhost:3000/orders/statistics', {
                 headers: {
-                    'Authorization': token
+                    'Authorization': `Bearer ${token}`
                 }
             })
             .then(response => response.json())
@@ -204,7 +216,7 @@
             // Load orders
             fetch('http://localhost:3000/orders', {
                 headers: {
-                    'Authorization': token
+                    'Authorization': `Bearer ${token}`
                 }
             })
             .then(response => response.json())
@@ -215,17 +227,28 @@
 
                     data.data.forEach(order => {
                         const row = document.createElement('tr');
-                        const itemsList = order.items.map(item => 
-                            `${item.product?.name || 'N/A'} (${item.quantity} x $${item.price})`
-                        ).join(', ');
+                        row.setAttribute('data-order-id', order._id);
+                        
+                        // Create a list of items with delete buttons
+                        const itemsHtml = order.items.map((item, index) => `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>${item.product?.name || 'N/A'} (${item.quantity} x $${item.price})</span>
+                                <button class="btn btn-danger btn-sm" onclick="deleteItem('${order._id}', ${index})">
+                                    <small>×</small>
+                                </button>
+                            </div>
+                        `).join('');
 
                         row.innerHTML = `
-                            <td>${order._id}</td>
-                            <td>${order.user?.username || 'N/A'}</td>
-                            <td>${itemsList}</td>
-                            <td>$${order.totalAmount.toFixed(2)}</td>
-                            <td>${new Date(order.createdAt).toLocaleDateString()}</td>
-                            <td>${order.orderStatus}</td>
+                            <td>#${order._id}</td>
+                            <td>
+                                <div class="items-list">
+                                    ${itemsHtml}
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteOrder('${order._id}')">Delete Order</button>
+                            </td>
                         `;
                         ordersTableBody.appendChild(row);
                     });
@@ -240,7 +263,7 @@
         function viewOrderDetails(orderId) {
             fetch(`http://localhost:3000/orders/${orderId}`, {
                 headers: {
-                    'Authorization': token
+                    'Authorization': `Bearer ${token}`
                 }
             })
             .then(response => response.json())
@@ -280,6 +303,69 @@
             .catch(error => {
                 console.error('Error loading order details:', error);
             });
+        }
+
+        // Delete order
+        async function deleteOrder(orderId) {
+            if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/orders/${orderId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Remove the order from the table
+                    const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                    alert('Order deleted successfully');
+                    // Reload the dashboard to update statistics
+                    loadDashboard();
+                } else {
+                    throw new Error(data.message || 'Failed to delete order');
+                }
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                alert('Error deleting order: ' + error.message);
+            }
+        }
+
+        // Delete individual item from order
+        async function deleteItem(orderId, itemIndex) {
+            if (!confirm('Are you sure you want to delete this item from the order?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/orders/${orderId}/items/${itemIndex}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Reload the dashboard to show updated order
+                    loadDashboard();
+                    alert('Item deleted successfully');
+                } else {
+                    throw new Error(data.message || 'Failed to delete item');
+                }
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                alert('Error deleting item: ' + error.message);
+            }
         }
     </script>
 </body>

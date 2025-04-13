@@ -159,7 +159,22 @@
 
     <div class="container">
         <div id="product-details">
-            <div class="loading">Loading product details...</div>
+            <div class="product-details">
+                <img id="productImage" class="product-image" alt="Product Image">
+                <div class="product-info">
+                    <h1 id="productName" class="product-name"></h1>
+                    <div id="productPrice" class="product-price"></div>
+                    <div id="productQuantity" class="product-quantity"></div>
+                    <p id="productDescription" class="product-description"></p>
+                    <div class="quantity-selector">
+                        <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
+                        <input type="number" class="quantity-input" id="quantity" value="1" min="1">
+                        <button class="quantity-btn" onclick="increaseQuantity()">+</button>
+                    </div>
+                    <button id="addToCart" class="add-to-cart-btn">Add to Cart</button>
+                    <a href="index.html" class="back-btn">Back to Products</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -185,21 +200,21 @@
             }
         }
 
-        function addToCart() {
+        function addToCart(product) {
             const quantity = parseInt(document.getElementById('quantity').value);
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             
             // Check if product already in cart
-            const existingItem = cart.find(item => item.id === productId);
+            const existingItem = cart.find(item => item.id === product._id);
             if (existingItem) {
                 existingItem.quantity += quantity;
             } else {
                 cart.push({
-                    id: productId,
+                    id: product._id,
                     name: product.name,
                     price: product.price,
                     quantity: quantity,
-                    imgURL: product.imgURL
+                    imageUrl: product.imageUrl
                 });
             }
             
@@ -209,41 +224,59 @@
 
         // Fetch and display product details
         async function loadProductDetails() {
-            const productContainer = document.getElementById('product-details');
-            
             try {
-                const response = await fetch(`http://localhost:3000/products/${productId}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    product = data.data;
-                    maxQuantity = product.quantity;
-                    productContainer.innerHTML = `
-                        <div class="product-details">
-                            <img src="${product.imgURL || 'https://via.placeholder.com/600'}" 
-                                 alt="${product.name}" 
-                                 class="product-image">
-                            <div class="product-info">
-                                <h1 class="product-name">${product.name}</h1>
-                                <div class="product-price">$${product.price}</div>
-                                <div class="product-quantity">Quantity: ${product.quantity}</div>
-                                <p class="product-description">${product.description || 'No description available'}</p>
-                                <div class="quantity-selector">
-                                    <button class="quantity-btn" onclick="decreaseQuantity()">-</button>
-                                    <input type="number" class="quantity-input" id="quantity" value="1" min="1" max="${product.quantity}">
-                                    <button class="quantity-btn" onclick="increaseQuantity()">+</button>
-                                </div>
-                                <button class="add-to-cart-btn" onclick="addToCart()">Add to Cart</button>
-                                <a href="index.html" class="back-btn">Back to Products</a>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    productContainer.innerHTML = '<div class="error">Product not found</div>';
+                if (!productId) {
+                    throw new Error('Product ID not found');
                 }
+
+                const response = await fetch(`http://localhost:3000/products/${productId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load product details');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load product');
+                }
+
+                product = result.data;
+                maxQuantity = product.quantity;
+                
+                // Update product image with proper fallback
+                const productImage = document.getElementById('productImage');
+                if (product.imageUrl) {
+                    // Check if it's a local image
+                    if (product.imageUrl.startsWith('/')) {
+                        productImage.src = `http://localhost:3000${product.imageUrl}`;
+                    } else {
+                        productImage.src = product.imageUrl;
+                    }
+                } else {
+                    // Use a local fallback image
+                    productImage.src = 'images/default-product.png';
+                }
+                
+                // Add error handling for the image
+                productImage.onerror = function() {
+                    this.src = 'images/default-product.png';
+                };
+
+                document.getElementById('productName').textContent = product.name;
+                document.getElementById('productPrice').textContent = `$${product.price.toFixed(2)}`;
+                document.getElementById('productDescription').textContent = product.description;
+                document.getElementById('productQuantity').textContent = `Quantity: ${product.quantity}`;
+                
+                // Update add to cart button
+                const addToCartBtn = document.getElementById('addToCart');
+                addToCartBtn.onclick = () => addToCart(product);
+                
             } catch (error) {
-                productContainer.innerHTML = '<div class="error">Error loading product details</div>';
-                console.error('Error loading product details:', error);
+                console.error('Error loading product:', error);
+                document.getElementById('product-details').innerHTML = `
+                    <div class="error">
+                        Error loading product: ${error.message}
+                    </div>
+                `;
             }
         }
 
