@@ -5,13 +5,19 @@ let categorySchema = mongoose.Schema({
         type:String,
         required:true,
         unique:true,
-    },description:{
+    },
+    description:{
         type:String,
         default:""
     },
-    slug:String
+    slug:String,
+    isDeleted: {
+        type: Boolean,
+        default: false
+    }
 },{
     timestamps:true
 })
+
 module.exports = mongoose.model('category',categorySchema)
 // Tao 1 schema cho obj category gồm name,description, timestamp

@@ -10,6 +10,18 @@ let cors = require('cors')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const categoryRoutes = require('./routes/categories');
+const orderRoutes = require('./routes/orders');
+const cartRoutes = require('./routes/cart');
+const roleRoutes = require('./routes/roles');
+
+// Import all models to ensure they are registered
+require('./schemas/user');
+require('./schemas/product');
+require('./schemas/order');
+require('./schemas/role');
 
 var app = express();
 
@@ -35,12 +47,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/auth', require('./routes/auth'));
-app.use('/menus', require('./routes/menus'));
-app.use('/roles', require('./routes/roles'));
-app.use('/products', require('./routes/products'));
-app.use('/categories', require('./routes/categories'));
-app.use('/categories', require('./routes/categories'));
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+app.use('/categories', categoryRoutes);
+app.use('/orders', orderRoutes);
+app.use('/cart', cartRoutes);
+app.use('/roles', roleRoutes);
 
 const orderRoutes = require('./routes/order');
 const notificationRoutes = require('./routes/notification');

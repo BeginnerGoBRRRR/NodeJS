@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #f0f0f0;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .profile-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .user-info h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .user-info p {
+            color: #666;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .info-item {
+            margin-bottom: 1rem;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+        .info-value {
+            color: #666;
+        }
+        .orders-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .order-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .order-id {
+            font-weight: bold;
+        }
+        .order-date {
+            color: #666;
+        }
+        .order-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .order-items {
+            margin-bottom: 1rem;
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .order-total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">E-Commerce</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="cart.html">Cart</a>
+            <button class="logout-btn" id="logout">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-section">
+            <div class="profile-header">
+                <img src="https://via.placeholder.com/100" alt="User Avatar" class="avatar">
+                <div class="user-info">
+                    <h1 id="userName">Loading...</h1>
+                    <p id="userEmail">Loading...</p>
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value" id="username">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Role</div>
+                    <div class="info-value" id="userRole">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Member Since</div>
+                    <div class="info-value" id="memberSince">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Orders</div>
+                    <div class="info-value" id="totalOrders">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="orders-section">
+            <h2>Order History</h2>
+            <div id="ordersList">
+                <div class="loading">Loading orders...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // Fetch user profile using the correct endpoint
+                const userResponse = await fetch('http://localhost:3000/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!userResponse.ok) {
+                    throw new Error('Failed to fetch user profile');
+                }
+
+                const userData = await userResponse.json();
+                if (!userData.success) {
+                    throw new Error(userData.message || 'Failed to load user data');
+                }
+
+                const user = userData.data;
+                
+                // Update user information
+                document.getElementById('userName').textContent = user.name || user.username;
+                document.getElementById('userEmail').textContent = user.email || 'Not provided';
+                document.getElementById('username').textContent = user.username;
+                document.getElementById('userRole').textContent = user.role?.name || 'User';
+                document.getElementById('memberSince').textContent = new Date(user.createdAt).toLocaleDateString();
+                
+                // Load user's orders
+                await loadOrders();
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                document.getElementById('userName').textContent = 'Error loading profile';
+                document.getElementById('userEmail').textContent = 'Error loading profile';
+                document.getElementById('username').textContent = 'Error loading profile';
+                document.getElementById('userRole').textContent = 'Error loading profile';
+                document.getElementById('memberSince').textContent = 'Error loading profile';
+                alert('Error loading profile: ' + error.message);
+            }
+        });
+
+        async function loadOrders() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/orders/my-orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch orders');
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load orders');
+                }
+
+                const orders = data.data;
+                const totalOrdersElement = document.getElementById('totalOrders');
+
+                // Update total orders count
+                totalOrdersElement.textContent = orders.length || 0;
+
+                // Clear existing orders
+                const ordersList = document.getElementById('ordersList');
+                ordersList.innerHTML = '';
+
+                if (orders.length === 0) {
+                    ordersList.innerHTML = '<div class="loading">No orders found</div>';
+                    return;
+                }
+
+                // Display each order
+                orders.forEach(order => {
+                    const orderElement = document.createElement('div');
+                    orderElement.className = 'order-card';
+                    orderElement.innerHTML = `
+                        <div class="order-header">
+                            <div>
+                                <span class="order-id">Order #${order._id}</span>
+                                <span class="order-date">${new Date(order.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <span class="order-status status-${order.orderStatus.toLowerCase()}">
+                                ${order.orderStatus}
+                            </span>
+                        </div>
+                        <div class="order-items">
+                            ${order.items.map(item => `
+                                <div class="order-item">
+                                    <span>${item.product?.name || 'Product not found'} x ${item.quantity}</span>
+                                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="order-total">
+                            <span>Total</span>
+                            <span>$${order.totalAmount.toFixed(2)}</span>
+                        </div>
+                    `;
+                    ordersList.appendChild(orderElement);
+                });
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersList').innerHTML = `
+                    <div class="error">
+                        Error loading orders: ${error.message}
+                    </div>
+                `;
+                // Set total orders to 0 on error
+                document.getElementById('totalOrders').textContent = '0';
+            }
+        }
+
+        // Logout functionality
+        document.getElementById('logout').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html> 

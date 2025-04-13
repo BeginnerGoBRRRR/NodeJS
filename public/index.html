@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a90e2;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .categories {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+        .category {
+            background-color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .category:hover {
+            background-color: #4a90e2;
+            color: white;
+        }
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        .product-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .product-info {
+            padding: 1rem;
+        }
+        .product-name {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .product-price {
+            color: #4a90e2;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .product-quantity {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 2rem;
+        }
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">E-Commerce</div>
+        <div class="nav-links">
+            <a href="index.html" title="Home">🏠</a>
+            <a href="cart.html" title="Cart">🛒</a>
+            <a href="profile.html" title="Profile">👤</a>
+            <a href="admin-dashboard.html" id="adminDashboard" style="display: none;" title="Admin Dashboard">⚙️</a>
+            <button onclick="logout()" title="Logout">🚪</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="categories" id="categories">
+            <!-- Categories will be loaded here -->
+        </div>
+        <div class="products" id="products">
+            <!-- Products will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // Logout functionality
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        // Fetch and display categories
+        async function loadCategories() {
+            try {
+                const response = await fetch('http://localhost:3000/categories');
+                const categories = await response.json();
+                
+                const categoriesContainer = document.getElementById('categories');
+                categoriesContainer.innerHTML = categories.map(category => `
+                    <div class="category" onclick="loadProductsByCategory('${category.slug}')">
+                        ${category.name}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Fetch and display products
+        async function loadProducts(categorySlug = null) {
+            const productsContainer = document.getElementById('products');
+            productsContainer.innerHTML = '<div class="loading">Loading products...</div>';
+
+            try {
+                const url = categorySlug 
+                    ? `http://localhost:3000/api/${categorySlug}`
+                    : 'http://localhost:3000/products';
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to load products');
+                }
+
+                const products = await response.json();
+                
+                productsContainer.innerHTML = products.map(product => {
+                    // Handle image URL with proper fallback
+                    let imageUrl = 'images/default-product.png';
+                    if (product.imageUrl) {
+                        if (product.imageUrl.startsWith('/')) {
+                            imageUrl = `http://localhost:3000${product.imageUrl}`;
+                        } else {
+                            imageUrl = product.imageUrl;
+                        }
+                    }
+
+                    return `
+                        <div class="product-card" onclick="window.location.href='product-details.html?id=${product._id}'">
+                            <img src="${imageUrl}" 
+                                 alt="${product.name}" 
+                                 class="product-image"
+                                 onerror="this.onerror=null; this.src='images/default-product.png'">
+                            <div class="product-info">
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-price">$${product.price.toFixed(2)}</div>
+                                <div class="product-quantity">Quantity: ${product.quantity}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                productsContainer.innerHTML = '<div class="error">Error loading products</div>';
+                console.error('Error loading products:', error);
+            }
+        }
+
+        // Load products by category
+        function loadProductsByCategory(categorySlug) {
+            loadProducts(categorySlug);
+        }
+
+        // Add this function to check user role
+        function checkAdmin() {
+            const token = localStorage.getItem('token');
+            console.log('Token exists:', !!token);
+            
+            if (token) {
+                // Get user data
+                fetch('http://localhost:3000/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(userData => {
+                    console.log('User data:', userData);
+                    // Check if the user's role name is 'admin'
+                    if (userData.success && userData.data.role && userData.data.role.name === 'admin') {
+                        console.log('User is admin, showing dashboard link');
+                        document.getElementById('adminDashboard').style.display = 'block';
+                    } else {
+                        console.log('User is not admin. Role:', userData.data?.role?.name || 'No role');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking admin status:', error);
+                });
+            }
+        }
+
+        // Call checkAdmin when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, checking admin status...'); // Debug log
+            checkAdmin();
+            loadCategories();
+            loadProducts();
+        });
+    </script>
+</body>
+</html> 
