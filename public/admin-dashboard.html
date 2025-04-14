@@ -133,7 +133,7 @@
         <div class="logo">Admin Dashboard</div>
         <div class="nav-links">
             <a href="index.html">Back to Home</a>
-            <a href="#" id="logoutBtn">Logout</a>
+            <button onclick="logout()" title="Logout">Logout</button>
         </div>
     </nav>
 
@@ -141,10 +141,10 @@
         <div class="sidebar">
             <ul class="sidebar-menu">
                 <li><a href="#" class="active" data-section="dashboard">Dashboard</a></li>
-                <li><a href="#" data-section="products">Products</a></li>
-                <li><a href="#" data-section="categories">Categories</a></li>
-                <li><a href="#" data-section="orders">Orders</a></li>
-                <li><a href="#" data-section="users">Users</a></li>
+                <li><a href="manage-product.html" data-section="products">Products</a></li>
+                <li><a href="manage-category.html" data-section="categories">Categories</a></li>
+                <li><a href="manage-order.html" data-section="orders">Orders</a></li>
+                <li><a href="manage-user.html" data-section="users">Users</a></li>
                 <li><a href="manage-comment.html">Manage Comments</a></li>
             </ul>
         </div>
@@ -166,35 +166,7 @@
                 </div>
             </div>
 
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5>Manage Products</h5>
-                        <a href="manage-product.html" class="btn btn-primary">Manage Products</a>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5>Manage Categories</h5>
-                        <a href="manage-category.html" class="btn btn-primary">Manage Categories</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5>Manage Users</h5>
-                        <a href="manage-user.html" class="btn btn-primary">Manage Users</a>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="stat-card">
-                        <h5>Manage Comments</h5>
-                        <a href="manage-comment.html" class="btn btn-primary">Manage Comments</a>
-                    </div>
-                </div>
-            </div>
+            
 
             <div class="orders-table">
                 <table class="table">
